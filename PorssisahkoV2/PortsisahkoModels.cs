@@ -28,6 +28,33 @@ namespace RpiElectricityPrice.Models. V2
         [JsonPropertyName("endDate")]
         public DateTime EndDate { get; set; }
     }
+
+    public class SpotHintaEntry
+    {
+        [JsonPropertyName("Rank")]
+        public int? Rank { get; set; }
+        [JsonPropertyName("DateTime")]
+        public DateTimeOffset Date { get; set; }
+        [JsonPropertyName("PriceNoTax")]            // unit is EUR/kWh
+        public double? PriceNoTax { get; set; }
+        [JsonPropertyName("PriceWithTax")]
+        public double? PriceWithTax { get; set; }   // unit is EUR/kWh
+    }
+
+    public class SpotHintaList
+    {
+        [JsonPropertyName("data")]
+        public List<SpotHintaEntry>? data { get; set; }
+    }
+
+    public class SpotHintaResponse
+    {
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+        
+        [JsonPropertyName("Prices")]
+        public List<SpotHintaEntry>? Prices { get; set; }
+    }
     
     // Price now response
     public class PriceNowResponse
@@ -55,7 +82,7 @@ namespace RpiElectricityPrice.Models. V2
         public string? Status { get; set; }
         
         [JsonPropertyName("prices")]
-        public List<PriceEntry>? Prices { get; set; }
+        public List<SpotHintaEntry>? Prices { get; set; }
     }
     
     // Statistics response

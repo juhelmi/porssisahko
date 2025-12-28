@@ -22,16 +22,61 @@ namespace RpiElectricityPrice
             var client = new PortsisahkoV2Client(
                 loggerFactory.CreateLogger<PortsisahkoV2Client>(), "last_prices_v2.json");
             
-            logger.LogInformation("=== Pörssisähkön Hinta (V2 API) ===\n");
+            if (true)
+            {
+                logger.LogInformation("=== Pörssisähkön Hinta (V2 API) ===\n");
+                
+                // Example 2: Get latest prices
+                await GetLatestPricesExample(client, logger);
+
+            }
+
+            logger.LogInformation("=== Spot-hinta.fi Prices ===\n");
+            var clientSpot = new SpotHintaClient(
+                loggerFactory.CreateLogger<SpotHintaClient>(), "spotHinta.json");
+            await GetSpotHintaPricesExample(
+                clientSpot,
+                logger);
+            //await clientSpot.GetLatestPricesAsync()
             
-            // Example 2: Get latest prices
-            await GetLatestPricesExample(client, logger);
             
             
             client.Dispose();
+            clientSpot.Dispose();
         }
         
         
+        static async Task GetSpotHintaPricesExample(
+            SpotHintaClient client,
+            ILogger logger)
+        {
+            logger.LogInformation("--- Spot-hinta.fi Latest Prices ---");
+            
+            var latest = await client.GetLatestPricesAsync();
+            if (latest?.Prices != null)
+            {
+                logger.LogInformation($"Total spots available: {latest.Prices.Count}");
+                //logger.LogInformation("\nNext 12 hours:");
+                //logger.LogInformation("\nComing hours:");
+                
+                var now = DateTime.Now;
+                var nextHours = latest.Prices
+                    .Where(p => p.Date >= now)
+                    //.Take(12*4)
+                    .ToList();
+                
+                logger.LogInformation($"\ncoming spots: {nextHours.Count}");
+                foreach (var price in nextHours)
+                {
+                    logger.LogInformation(
+                        $"  {price.Date:ddd HH:mm}:  " +
+                        $"{(100*price.PriceWithTax):F3} c/kWh");
+                }
+            }
+            
+            logger.LogInformation("");
+        }
+
         static async Task GetLatestPricesExample(
             PortsisahkoV2Client client, 
             ILogger logger)
