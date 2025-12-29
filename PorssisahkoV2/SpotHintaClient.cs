@@ -1,22 +1,26 @@
 using System;
 using System.Collections.Generic;
-using System. Globalization;
-using System.Net. Http;
+using System.Globalization;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RpiElectricityPrice.Models.V2;
 
+using RpiElectricityPrice;
+
 namespace RpiElectricityPrice.Services
 {
-    public class SpotHintaClient :  IDisposable
+    public class SpotHintaClient :  IDisposable, ISpotPriceSource
     {
+        public readonly string _sourceName;
         private readonly ILogger _logger;
         private readonly HttpClient _httpClient;
 
         private const string BaseUrl = "https://api.spot-hinta.fi/";
 
         private List<SpotHintaEntry> _cachedPrices = new List<SpotHintaEntry>();
+        private PriceSeries _priceSeries;
         private DateTime _lastFetchTime = DateTime.MinValue;
         private String? _lastFetchFilename = null;
         private readonly int _refreshIntervalMinutes = 30;
@@ -30,8 +34,60 @@ namespace RpiElectricityPrice.Services
             _logger = logger;
             _lastFetchFilename = lastFetchFilename;
             _refreshIntervalMinutes = refreshIntervalMinutes;
+            _sourceName = "FI";
+            _priceSeries = new PriceSeries(
+                "FI",
+                new List<NPriceEntry>(),
+                DateTime.UtcNow
+            );
         }
 
+        public string SourceName { get { return _sourceName; } }
+
+        private void ConvertOriginalFormatToInterfaceFormat() 
+        { 
+            _priceSeries.Entries.Clear();
+            if (_cachedPrices?.Count > 0 ) 
+            foreach (var entry in _cachedPrices)
+            {
+                if (entry.PriceWithTax.HasValue)
+                {
+                    NPriceEntry nPrice = new NPriceEntry
+                    {
+                        Timestamp = entry.Date.DateTime,
+                        PriceEurKWh = entry.PriceWithTax.Value * 100
+                    };
+                    _priceSeries.Entries.Add(nPrice);
+                }
+            }
+        }
+
+        public async Task<PriceSeries> GetPricesAsync(
+            DateTime start,
+            DateTime end,
+            string region,
+            CancellationToken token = default)
+        {
+            PriceSeries priceSeries = _priceSeries;
+            return priceSeries;
+        }
+
+        public async Task<PriceSeries> GetCheapestPricesAsync(
+            DateTime start,
+            DateTime end,
+            string region,
+            double timelimitHours,
+            bool allowGaps,
+            CancellationToken token = default)
+        {
+            PriceSeries priceSeries = new PriceSeries(
+                _priceSeries.Region,
+                _priceSeries.Entries,
+                _priceSeries.RetrievedAtUtc
+            );
+            //
+            return priceSeries;
+        }
 
         public async Task<SpotHintaResponse?> GetLatestPricesAsync(bool useCache = true)
         {
@@ -58,6 +114,7 @@ namespace RpiElectricityPrice.Services
                         if (latestFromFile != null)
                         {
                             _cachedPrices = new List<SpotHintaEntry>(latestFromFile.data ?? new List<SpotHintaEntry>());
+                            ConvertOriginalFormatToInterfaceFormat();
                             _lastFetchTime = latestFromFile.ReadTime ?? DateTime.Now;
                             if ((DateTime.Now - _lastFetchTime).TotalMinutes < _refreshIntervalMinutes)
                             {
@@ -77,6 +134,7 @@ namespace RpiElectricityPrice.Services
                     if (response != null && response.data != null && response.data.Count > 0)
                     {
                         _cachedPrices = new List<SpotHintaEntry>(response.data);
+                        ConvertOriginalFormatToInterfaceFormat();
                         _lastFetchTime = DateTime.Now;
                         response.ReadTime = _lastFetchTime;  // File will know when data was read
 

@@ -87,6 +87,19 @@ namespace RpiElectricityPrice
 
                 await Task.Delay(100);
             }
+
+            var commonLatest = await client.GetPricesAsync(DateTime.Now, DateTime.Now, "FI");
+            if (commonLatest?.Entries?.Count > 0)
+            {
+                var nextHours = commonLatest.Entries
+                    .Where(p => p.Timestamp > DateTime.Now)
+                    .ToList();
+                foreach (var price in nextHours)
+                {
+                    logger.LogInformation(
+                        $"  {price.PriceEurKWh:F3} c/kWh  time: {price.Timestamp:ddd HH:mm}");
+                }
+            }
             
             logger.LogInformation("\n");
         }

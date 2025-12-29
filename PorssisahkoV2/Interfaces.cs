@@ -4,18 +4,30 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PorssisahkoV2
+namespace RpiElectricityPrice
 {
-    public record PriceEntry(
-    DateTime Timestamp,
-    decimal? PriceEurMWh = null,
-    decimal PriceEurKWh,
-    decimal? TaxIncludedPrice = null);
+    public record NPriceEntry
+    {
+        public DateTime Timestamp { get; init; }
+        public double PriceEurKWh { get; init; }
+        //decimal? PriceEurMWh = null,
+        //decimal? TaxIncludedPrice = null
+    }
 
-    public record PriceSeries(
-        string Region,
-        IReadOnlyList<PriceEntry> Entries,
-        DateTime RetrievedAtUtc);
+    public class PriceSeries
+    {
+        public string Region;
+        public int SlotsInHour = 4;
+        public /*IReadOnly*/List<NPriceEntry> Entries;
+        public DateTime RetrievedAtUtc;
+
+        public PriceSeries(string region, List<NPriceEntry> entries, DateTime retrievedAtUtc)
+        {
+            Region = region;
+            Entries = entries;
+            RetrievedAtUtc = retrievedAtUtc;
+        }
+    }
 
     public interface ISpotPriceSource
     {
@@ -26,6 +38,15 @@ namespace PorssisahkoV2
             DateTime end,
             string region,
             CancellationToken token = default);
+
+        Task<PriceSeries> GetCheapestPricesAsync(
+            DateTime start,
+            DateTime end,
+            string region,
+            double timelimitHours,
+            bool allowGaps,
+            CancellationToken token = default);
+        
     }
 
     public interface ISpotPriceCache
@@ -36,7 +57,7 @@ namespace PorssisahkoV2
 
     public class FallbackSpotPriceSource : ISpotPriceSource
     {
-        private readonly IReadOnlyList<ISpotPriceSource> _sources;
+        private readonly IReadOnlyList<ISpotPriceSource>? _sources;
 
         public string SourceName => throw new NotImplementedException();
 
@@ -44,6 +65,17 @@ namespace PorssisahkoV2
         {
             throw new NotImplementedException();
         }
+        public Task<PriceSeries> GetCheapestPricesAsync(
+            DateTime start,
+            DateTime end,
+            string region,
+            double timelimitHours,
+            bool allowGaps,
+            CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
 

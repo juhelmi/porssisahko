@@ -2,7 +2,7 @@ using System;
 using System. Collections.Generic;
 using System. Text.Json.Serialization;
 
-namespace RpiElectricityPrice.Models. V2
+namespace RpiElectricityPrice.Models.V2
 {
     // Latest prices response
     public class LatestPricesResponse
