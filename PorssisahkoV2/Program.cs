@@ -100,7 +100,20 @@ namespace RpiElectricityPrice
                         $"  {price.PriceEurKWh:F3} c/kWh  time: {price.Timestamp:ddd HH:mm}");
                 }
             }
-            
+            var consLow = await client.GetCheapestPricesAsync(DateTime.Now, DateTime.Now, "FI", 4, true);
+            if (consLow?.Entries?.Count > 0)
+            {
+                logger.LogInformation("\n");
+                var nextHours = consLow.Entries
+                    .Where(p => p.Timestamp > DateTime.Now)
+                    .ToList();
+                foreach (var price in nextHours)
+                {
+                    logger.LogInformation(
+                        $"  {price.PriceEurKWh:F3} c/kWh  time: {price.Timestamp:ddd HH:mm}");
+                }
+            }
+
             logger.LogInformation("\n");
         }
 

@@ -1,14 +1,15 @@
+using Microsoft.Extensions.Logging;
+using RpiElectricityPrice;
+using RpiElectricityPrice.Models.V2;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using RpiElectricityPrice.Models.V2;
-
-using RpiElectricityPrice;
 using System.Text.Json;
+using System.Threading.Tasks;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace RpiElectricityPrice.Services
 {
@@ -83,6 +84,7 @@ namespace RpiElectricityPrice.Services
             return priceSeries;
         }
 
+        // Move to common for all Interfaces
         public async Task<PriceSeries> GetCheapestPricesAsync(
             DateTime start,
             DateTime end,
@@ -97,7 +99,42 @@ namespace RpiElectricityPrice.Services
                 _priceSeries.Entries,
                 _priceSeries.RetrievedAtUtc
             );
-            //
+            int slots = (int)(timelimitHours * priceSeries.SlotsInHour);
+            if (allowGaps)
+            {
+                // Sorting according to price if gaps are allowed
+                var comingHours = priceSeries.Entries
+                    .Where(p => p.Timestamp > DateTime.Now)
+                    .OrderBy(p => p.PriceEurKWh)
+                    .Take(slots)
+                    .ToList();
+                priceSeries.Entries = comingHours;
+            } else
+            {
+                var timeNow = DateTime.Now;
+                var sortedPrices = priceSeries.Entries
+                    .OrderBy(p => p.Timestamp)
+                    .Where(p => p.Timestamp > timeNow)
+                    .ToList();
+
+                double minSum = double.MaxValue;
+                int minIndex = 0;
+
+                for (int i = 0; i <= sortedPrices.Count - slots; i++)
+                {
+                    double sum = sortedPrices
+                        .Skip(i)
+                        .Take(slots)
+                        .Sum(p => p.PriceEurKWh);
+
+                    if (sum < minSum)
+                    {
+                        minSum = sum;
+                        minIndex = i;
+                    }
+                }
+                priceSeries.Entries = sortedPrices.Skip(minIndex).Take(slots).ToList();
+            }
             return priceSeries;
         }
 
