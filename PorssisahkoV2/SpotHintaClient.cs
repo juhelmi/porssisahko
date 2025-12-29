@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using RpiElectricityPrice.Models.V2;
 
 using RpiElectricityPrice;
+using System.Text.Json;
 
 namespace RpiElectricityPrice.Services
 {
@@ -62,12 +63,22 @@ namespace RpiElectricityPrice.Services
             }
         }
 
+        private void CheckLastPriceUpdate()
+        {
+            if ((DateTime.Now - _lastFetchTime).TotalMinutes >= _refreshIntervalMinutes)
+            {
+                var task = GetLatestPricesAsync();
+                task.Wait();
+            }
+        }
+
         public async Task<PriceSeries> GetPricesAsync(
             DateTime start,
             DateTime end,
             string region,
             CancellationToken token = default)
         {
+            CheckLastPriceUpdate();
             PriceSeries priceSeries = _priceSeries;
             return priceSeries;
         }
@@ -80,6 +91,7 @@ namespace RpiElectricityPrice.Services
             bool allowGaps,
             CancellationToken token = default)
         {
+            CheckLastPriceUpdate();
             PriceSeries priceSeries = new PriceSeries(
                 _priceSeries.Region,
                 _priceSeries.Entries,
@@ -141,7 +153,7 @@ namespace RpiElectricityPrice.Services
                         if (useCache && _lastFetchFilename != null)
                         {
                             _logger.LogDebug($"Saving latest prices to file: {_lastFetchFilename}");
-                            var jsonString = System.Text.Json.JsonSerializer.Serialize(response);
+                            var jsonString = System.Text.Json.JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true });
                             await System.IO.File.WriteAllTextAsync(_lastFetchFilename, jsonString);
                         }
                     }
