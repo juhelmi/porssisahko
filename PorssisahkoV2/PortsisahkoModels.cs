@@ -9,6 +9,8 @@ namespace RpiElectricityPrice.Models. V2
     {
         [JsonPropertyName("status")]
         public string?  Status { get; set; }
+        [JsonPropertyName("readDate")]
+        public DateTime? ReadTime { get; set; }
         
         [JsonPropertyName("prices")]
         public List<PriceEntry>? Prices { get; set; }
@@ -45,6 +47,8 @@ namespace RpiElectricityPrice.Models. V2
     {
         [JsonPropertyName("data")]
         public List<SpotHintaEntry>? data { get; set; }
+        [JsonPropertyName("readDate")]
+        public DateTime? ReadTime { get; set; }
     }
 
     public class SpotHintaResponse

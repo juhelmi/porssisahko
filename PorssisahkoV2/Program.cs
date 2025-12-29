@@ -17,10 +17,11 @@ namespace RpiElectricityPrice
                     .AddConsole()
                     .SetMinimumLevel(LogLevel. Information);
             });
+            int refreshIntervalMinutes = 120;
             
             var logger = loggerFactory. CreateLogger<Program>();
             var client = new PortsisahkoV2Client(
-                loggerFactory.CreateLogger<PortsisahkoV2Client>(), "last_prices_v2.json");
+                loggerFactory.CreateLogger<PortsisahkoV2Client>(), "last_prices_v2.json", refreshIntervalMinutes);
             
             if (true)
             {
@@ -31,15 +32,18 @@ namespace RpiElectricityPrice
 
             }
 
-            logger.LogInformation("=== Spot-hinta.fi Prices ===\n");
             var clientSpot = new SpotHintaClient(
-                loggerFactory.CreateLogger<SpotHintaClient>(), "spotHinta.json");
-            await GetSpotHintaPricesExample(
-                clientSpot,
-                logger);
-            //await clientSpot.GetLatestPricesAsync()
-            
-            
+                loggerFactory.CreateLogger<SpotHintaClient>(), "spotHinta.json", refreshIntervalMinutes);
+            if (true)
+            {
+                logger.LogInformation("=== Spot-hinta.fi Prices ===\n");
+                await GetSpotHintaPricesExample(
+                    clientSpot,
+                    logger);
+            }
+
+            await Task.Delay(100);
+            logger.LogInformation("\n\nDone");
             
             client.Dispose();
             clientSpot.Dispose();
@@ -70,11 +74,21 @@ namespace RpiElectricityPrice
                 {
                     logger.LogInformation(
                         $"  {price.Date:ddd HH:mm}:  " +
-                        $"{(100*price.PriceWithTax):F3} c/kWh");
+                        $"{(100*price.PriceWithTax):F3} c/kWh rank: {price.Rank}");
                 }
+
+                logger.LogInformation($"\nSort spots by rank");
+                var sortedRank = nextHours.OrderBy(p => p.Rank).ToList();
+                foreach (var price in sortedRank)
+                {
+                    logger.LogInformation($"  {price.Date:ddd HH:mm}:  " +
+                        $"{(100 * price.PriceWithTax):F3} c/kWh rank: {price.Rank}");
+                }
+
+                await Task.Delay(100);
             }
             
-            logger.LogInformation("");
+            logger.LogInformation("\n");
         }
 
         static async Task GetLatestPricesExample(
@@ -94,6 +108,7 @@ namespace RpiElectricityPrice
                 var nextHours = latest.Prices
                     .Where(p => p.StartDate >= now)
                     //.Take(12*4)
+                    .OrderBy(p => p.StartDate)
                     .ToList();
                 
                 foreach (var price in nextHours)

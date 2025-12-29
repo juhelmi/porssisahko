@@ -19,8 +19,9 @@ namespace RpiElectricityPrice.Services
         private List<SpotHintaEntry> _cachedPrices = new List<SpotHintaEntry>();
         private DateTime _lastFetchTime = DateTime.MinValue;
         private String? _lastFetchFilename = null;
+        private readonly int _refreshIntervalMinutes = 30;
 
-        public SpotHintaClient(ILogger logger, String lastFetchFilename)
+        public SpotHintaClient(ILogger logger, String lastFetchFilename, int refreshIntervalMinutes)
         {
             _httpClient = new HttpClient
             {
@@ -28,6 +29,7 @@ namespace RpiElectricityPrice.Services
             };
             _logger = logger;
             _lastFetchFilename = lastFetchFilename;
+            _refreshIntervalMinutes = refreshIntervalMinutes;
         }
 
 
@@ -37,7 +39,7 @@ namespace RpiElectricityPrice.Services
             {
                 if (useCache && 
                     _cachedPrices.Count > 0 && 
-                    (DateTime.Now - _lastFetchTime).TotalMinutes < 30)
+                    (DateTime.Now - _lastFetchTime).TotalMinutes < _refreshIntervalMinutes)
                 {
                     _logger.LogDebug("Using cached latest prices");
                     return new SpotHintaResponse
@@ -56,13 +58,16 @@ namespace RpiElectricityPrice.Services
                         if (latestFromFile != null)
                         {
                             _cachedPrices = new List<SpotHintaEntry>(latestFromFile.data ?? new List<SpotHintaEntry>());
-                            _lastFetchTime = DateTime.Now;
-                            var lastResponse = new SpotHintaResponse
+                            _lastFetchTime = latestFromFile.ReadTime ?? DateTime.Now;
+                            if ((DateTime.Now - _lastFetchTime).TotalMinutes < _refreshIntervalMinutes)
                             {
-                                Status = "ok",
-                                Prices = new List<SpotHintaEntry>(_cachedPrices)
-                            };
-                            return lastResponse;
+                                var lastResponse = new SpotHintaResponse
+                                {
+                                    Status = "ok",
+                                    Prices = new List<SpotHintaEntry>(_cachedPrices)
+                                };
+                                return lastResponse;
+                            }
                         }
                     }
 
@@ -73,6 +78,7 @@ namespace RpiElectricityPrice.Services
                     {
                         _cachedPrices = new List<SpotHintaEntry>(response.data);
                         _lastFetchTime = DateTime.Now;
+                        response.ReadTime = _lastFetchTime;  // File will know when data was read
 
                         if (useCache && _lastFetchFilename != null)
                         {

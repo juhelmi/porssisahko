@@ -18,8 +18,9 @@ namespace RpiElectricityPrice.Services
         private List<PriceEntry> _cachedPrices = new List<PriceEntry>();
         private DateTime _lastFetchTime = DateTime.MinValue;
         private String? _lastFetchFilename = null;
-        
-        public PortsisahkoV2Client(ILogger<PortsisahkoV2Client> logger, String lastFilename)
+        private readonly int _refreshIntervalMinutes = 30;
+
+        public PortsisahkoV2Client(ILogger<PortsisahkoV2Client> logger, String lastFilename, int refreshIntervalMinutes)
         {
             _httpClient = new HttpClient
             {
@@ -27,6 +28,7 @@ namespace RpiElectricityPrice.Services
             };
             _logger = logger;
             _lastFetchFilename = lastFilename;
+            _refreshIntervalMinutes = refreshIntervalMinutes;
         }
         
         public PortsisahkoV2Client(HttpClient httpClient, ILogger<PortsisahkoV2Client> logger, string lastFilename)
@@ -67,9 +69,12 @@ namespace RpiElectricityPrice.Services
                             {
                                 _cachedPrices.Clear();
                                 _cachedPrices.AddRange(fileresponse.Prices);
-                                _lastFetchTime = DateTime.Now;
-                                _logger.LogInformation($"Loaded latest prices from {_lastFetchFilename}");
-                                return fileresponse;
+                                _lastFetchTime = fileresponse.ReadTime ?? DateTime.Now;
+                                if ((DateTime.Now - _lastFetchTime).TotalMinutes < _refreshIntervalMinutes)
+                                {
+                                    _logger.LogInformation($"Loaded latest prices from {_lastFetchFilename}");
+                                    return fileresponse;
+                                }
                             }
                         }
                         catch (Exception ex)
@@ -83,11 +88,13 @@ namespace RpiElectricityPrice.Services
                 
                 var response = await _httpClient.GetFromJsonAsync<LatestPricesResponse>(url);
                 
-                if (response?. Prices != null)
+                if (response?.Prices != null)
                 {
                     _cachedPrices.Clear();
                     _cachedPrices.AddRange(response.Prices);
                     _lastFetchTime = DateTime.Now;
+                    response.Status = "ok";
+                    response.ReadTime = _lastFetchTime;  // File will know when data was read
                     _logger.LogInformation($"Retrieved {response.Prices.Count} latest price entries");
                     // Save to file if filename is provided
                     if (!string.IsNullOrEmpty(_lastFetchFilename))
