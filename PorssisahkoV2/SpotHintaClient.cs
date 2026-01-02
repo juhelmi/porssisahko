@@ -64,13 +64,14 @@ namespace RpiElectricityPrice.Services
             }
         }
 
-        private void CheckLastPriceUpdate()
+        private async Task<int> CheckLastPriceUpdate()
         {
             if ((DateTime.Now - _lastFetchTime).TotalMinutes >= _refreshIntervalMinutes)
             {
                 var task = GetLatestPricesAsync();
-                task.Wait();
+                await task;
             }
+            return 0;
         }
 
         public async Task<PriceSeries> GetPricesAsync(
@@ -79,7 +80,7 @@ namespace RpiElectricityPrice.Services
             string region,
             CancellationToken token = default)
         {
-            CheckLastPriceUpdate();
+            await CheckLastPriceUpdate();
             PriceSeries priceSeries = _priceSeries;
             return priceSeries;
         }
@@ -93,7 +94,7 @@ namespace RpiElectricityPrice.Services
             bool allowGaps,
             CancellationToken token = default)
         {
-            CheckLastPriceUpdate();
+            await CheckLastPriceUpdate();
             PriceSeries priceSeries = new PriceSeries(
                 _priceSeries.Region,
                 _priceSeries.Entries,

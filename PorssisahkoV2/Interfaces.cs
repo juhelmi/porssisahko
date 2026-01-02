@@ -57,7 +57,7 @@ namespace RpiElectricityPrice
 
     public class FallbackSpotPriceSource : ISpotPriceSource
     {
-        private readonly IReadOnlyList<ISpotPriceSource>? _sources;
+        //private readonly IReadOnlyList<ISpotPriceSource>? _sources;
 
         public string SourceName => throw new NotImplementedException();
 
