@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaskeEdullisinLataus.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="LaskeEdullisinLataus.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+    Title="Laske Edullisin Lataus"
+    Width="980"
+    Height="700"
+    MinWidth="880"
+    MinHeight="620">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*" Margin="20" RowSpacing="14">
+        <TextBlock Grid.Row="0"
+                   Text="Cheapest EV Charging Time (Porssisahko v2)"
+                   FontSize="22"
+                   FontWeight="SemiBold" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="360,*" ColumnSpacing="18">
+            <Border Padding="14" CornerRadius="8" Background="#F4F4F4">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Inputs" FontSize="18" FontWeight="SemiBold" />
+
+                    <TextBlock Text="Current SOC (%)" />
+                    <TextBox Text="{Binding CurrentSocText}" />
+
+                    <TextBlock Text="Target SOC (%)" />
+                    <TextBox Text="{Binding TargetSocText}" />
+
+                    <TextBlock Text="Estimated Battery Capacity (kWh)" />
+                    <TextBox Text="{Binding BatteryCapacityKwhText}" />
+
+                    <TextBlock Text="Charging Loss (W)" />
+                    <TextBox Text="{Binding ChargingLossWattsText}" />
+
+                    <TextBlock Text="Charge Power (kW)" />
+                    <TextBox Text="{Binding ChargePowerKwText}" />
+
+                    <TextBlock Text="Default 3 x 8 A x 230 V = 5.52 kW" FontStyle="Italic" />
+
+                    <Button Content="Fetch Prices And Calculate"
+                            Command="{Binding CalculateCommand}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,6,0,0" />
+
+                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="10">
+                <Border Grid.Row="0" Padding="14" CornerRadius="8" Background="#EEF4FF">
+                    <TextBlock Text="{Binding ResultSummary}" TextWrapping="Wrap" FontSize="14" />
+                </Border>
+
+                <Border Grid.Row="1" Padding="10" CornerRadius="8" Background="#FAFAFA">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                        <TextBlock Text="Selected Charging Segments" FontSize="17" FontWeight="SemiBold" />
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding CheapestWindowSegments}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ChargeSegmentViewModel">
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="#DDDDDD" Padding="0,7">
+                                            <Grid ColumnDefinitions="170,170,120,120,*">
+                                                <TextBlock Grid.Column="0" Text="{Binding Start, StringFormat='{}{0:dd.MM HH:mm}'}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding End, StringFormat='{}{0:dd.MM HH:mm}'}" />
+                                                <TextBlock Grid.Column="2" Text="{Binding PriceCentsPerKWh, StringFormat='{}{0:F3} c/kWh'}" />
+                                                <TextBlock Grid.Column="3" Text="{Binding GridEnergyKWh, StringFormat='{}{0:F2} kWh'}" />
+                                                <TextBlock Grid.Column="4" Text="{Binding CostEur, StringFormat='{}{0:F3} EUR'}" HorizontalAlignment="Right" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+
+</Window>

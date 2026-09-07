@@ -103,7 +103,7 @@ namespace RpiElectricityPrice
             var consLow = await client.GetCheapestPricesAsync(DateTime.Now, DateTime.Now, "FI", 4, true);
             if (consLow?.Entries?.Count > 0)
             {
-                logger.LogInformation("\n");
+                logger.LogInformation($"\n\nSlot len {4}");
                 var nextHours = consLow.Entries
                     .Where(p => p.Timestamp > DateTime.Now)
                     .ToList();
@@ -147,7 +147,7 @@ namespace RpiElectricityPrice
             
             logger.LogInformation("");
 
-            var slotCout = 3*4; // 3 hours
+            var slotCout = 4*4; // 4 slots in a hour
             logger.LogInformation($"\n=== Cheapest Slots ({slotCout} slots) ===");
             if (latest is not null)
             {
