@@ -4,6 +4,7 @@ using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
+using LaskeEdullisinLataus.Services;
 using LaskeEdullisinLataus.ViewModels;
 using LaskeEdullisinLataus.Views;
 
@@ -22,7 +23,7 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = new MainWindowViewModel(Program.SettingsStore, Program.StartupSettings),
             };
         }
 

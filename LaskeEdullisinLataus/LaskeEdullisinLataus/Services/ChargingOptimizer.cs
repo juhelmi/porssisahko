@@ -40,8 +40,7 @@ public sealed class ChargingOptimizer
         }
 
         var requiredHours = batteryEnergyNeededKWh / input.ChargePowerKW;
-        var lossPowerKw = input.ChargingLossWatts / 1000m;
-        var totalGridPowerKw = input.ChargePowerKW + lossPowerKw;
+        var totalGridPowerKw = input.TotalPowerKW;
 
         decimal? bestCost = null;
         int bestStartIndex = -1;

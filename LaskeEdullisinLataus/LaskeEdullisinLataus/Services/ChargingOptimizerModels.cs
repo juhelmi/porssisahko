@@ -7,8 +7,11 @@ public readonly record struct ChargingInput(
     decimal CurrentSocPercent,
     decimal TargetSocPercent,
     decimal BatteryCapacityKWh,
+    decimal TotalPowerKW,
     decimal ChargePowerKW,
-    decimal ChargingLossWatts);
+    decimal BaseLossWatts,
+    decimal CurrentDependentFactor,
+    decimal TotalLossWatts);
 
 public sealed record PriceSlot(
     DateTimeOffset StartDate,

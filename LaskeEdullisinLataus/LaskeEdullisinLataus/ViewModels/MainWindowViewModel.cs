@@ -13,6 +13,7 @@ namespace LaskeEdullisinLataus.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private readonly AppInitializationStore _initializationStore;
     private readonly PorssisahkoClient _priceClient = new();
     private readonly ChargingOptimizer _optimizer = new();
 
@@ -26,10 +27,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private string batteryCapacityKwhText = "77";
 
     [ObservableProperty]
-    private string chargingLossWattsText = "300";
+    private string totalPowerKwText = "5.52";
 
     [ObservableProperty]
-    private string chargePowerKwText = "5.52";
+    private string baseLossWattsText = "300";
+
+    [ObservableProperty]
+    private string currentDependentFactorText = "0.055";
 
     [ObservableProperty]
     private string statusMessage = "Ready.";
@@ -43,17 +47,83 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<ChargeSegmentViewModel> CheapestWindowSegments { get; } = [];
 
     public IAsyncRelayCommand CalculateCommand { get; }
+    public IRelayCommand SaveDefaultsCommand { get; }
+
+    public MainWindowViewModel(AppInitializationStore initializationStore, AppInitializationSettings settings)
+    {
+        _initializationStore = initializationStore;
+
+        CalculateCommand = new AsyncRelayCommand(CalculateAsync, CanCalculate);
+        SaveDefaultsCommand = new RelayCommand(SaveDefaults);
+
+        CurrentSocText = settings.CurrentSocPercent.ToString(CultureInfo.InvariantCulture);
+        TargetSocText = settings.TargetSocPercent.ToString(CultureInfo.InvariantCulture);
+        BatteryCapacityKwhText = settings.BatteryCapacityKWh.ToString(CultureInfo.InvariantCulture);
+        TotalPowerKwText = settings.TotalPowerKW.ToString(CultureInfo.InvariantCulture);
+        BaseLossWattsText = settings.BaseLossWatts.ToString(CultureInfo.InvariantCulture);
+        CurrentDependentFactorText = settings.CurrentDependentFactor.ToString(CultureInfo.InvariantCulture);
+        NotifyPowerPropertiesChanged();
+
+        StatusMessage = $"Ready. Initialization loaded from {_initializationStore.FilePath}";
+    }
 
     public MainWindowViewModel()
+        : this(new AppInitializationStore(), new AppInitializationStore().LoadOrCreate())
     {
-        CalculateCommand = new AsyncRelayCommand(CalculateAsync, CanCalculate);
     }
 
     partial void OnCurrentSocTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
     partial void OnTargetSocTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
     partial void OnBatteryCapacityKwhTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
-    partial void OnChargingLossWattsTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
-    partial void OnChargePowerKwTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
+    partial void OnTotalPowerKwTextChanged(string value)
+    {
+        CalculateCommand.NotifyCanExecuteChanged();
+        NotifyPowerPropertiesChanged();
+    }
+
+    partial void OnBaseLossWattsTextChanged(string value)
+    {
+        CalculateCommand.NotifyCanExecuteChanged();
+        NotifyPowerPropertiesChanged();
+    }
+
+    partial void OnCurrentDependentFactorTextChanged(string value)
+    {
+        CalculateCommand.NotifyCanExecuteChanged();
+        NotifyPowerPropertiesChanged();
+    }
+
+    public string EffectiveChargePowerText
+    {
+        get
+        {
+            if (!TryParseDecimal(TotalPowerKwText, out var totalPowerKw) ||
+                !TryParseDecimal(BaseLossWattsText, out var baseLossWatts) ||
+                !TryParseDecimal(CurrentDependentFactorText, out var factor))
+            {
+                return "-";
+            }
+
+            var chargePowerKw = totalPowerKw - (baseLossWatts / 1000m) - (totalPowerKw * factor);
+            return $"{chargePowerKw:F3} kW";
+        }
+    }
+
+    public string TotalLossWattsText
+    {
+        get
+        {
+            if (!TryParseDecimal(TotalPowerKwText, out var totalPowerKw) ||
+                !TryParseDecimal(BaseLossWattsText, out var baseLossWatts) ||
+                !TryParseDecimal(CurrentDependentFactorText, out var factor))
+            {
+                return "-";
+            }
+
+            var totalLossWatts = baseLossWatts + (totalPowerKw * 1000m * factor);
+            return $"{totalLossWatts:F1} W";
+        }
+    }
 
     private bool CanCalculate() => !IsBusy;
 
@@ -109,6 +179,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 $"Cheapest start: {result.StartLocal:dd.MM.yyyy HH:mm}\n" +
                 $"End: {result.EndLocal:dd.MM.yyyy HH:mm}\n" +
                 $"Charge duration: {result.RequiredDurationHours:F2} h\n" +
+                $"Total power: {input.TotalPowerKW:F2} kW\n" +
+                $"Effective charge power: {input.ChargePowerKW:F2} kW\n" +
                 $"Battery energy needed: {result.BatteryEnergyNeededKWh:F2} kWh\n" +
                 $"Grid energy used: {result.GridEnergyUsedKWh:F2} kWh\n" +
                 $"Total cost: {result.TotalCostEur:F2} EUR";
@@ -149,20 +221,73 @@ public partial class MainWindowViewModel : ViewModelBase
             return false;
         }
 
-        if (!TryParseDecimal(ChargePowerKwText, out var chargePowerKw) || chargePowerKw <= 0m)
+        if (!TryParseDecimal(TotalPowerKwText, out var totalPowerKw) || totalPowerKw <= 0m)
         {
-            error = "Charge power (kW) must be a positive number.";
+            error = "Total power (kW) must be a positive number.";
             return false;
         }
 
-        if (!TryParseDecimal(ChargingLossWattsText, out var chargingLossWatts) || chargingLossWatts < 0m)
+        if (!TryParseDecimal(BaseLossWattsText, out var baseLossWatts) || baseLossWatts < 0m)
         {
-            error = "Charging loss (W) must be zero or positive.";
+            error = "Base loss (W) must be zero or positive.";
             return false;
         }
 
-        input = new ChargingInput(currentSoc, targetSoc, batteryCapacityKwh, chargePowerKw, chargingLossWatts);
+        if (!TryParseDecimal(CurrentDependentFactorText, out var currentDependentFactor) ||
+            currentDependentFactor < 0m || currentDependentFactor >= 1m)
+        {
+            error = "Current dependant factor must be between 0 and 1 (for example 0.055).";
+            return false;
+        }
+
+        var chargePowerKw = totalPowerKw - (baseLossWatts / 1000m) - (totalPowerKw * currentDependentFactor);
+        if (chargePowerKw <= 0m)
+        {
+            error = "Computed charge power must be greater than zero. Lower losses or increase total power.";
+            return false;
+        }
+
+        var totalLossWatts = baseLossWatts + (totalPowerKw * 1000m * currentDependentFactor);
+
+        input = new ChargingInput(
+            currentSoc,
+            targetSoc,
+            batteryCapacityKwh,
+            totalPowerKw,
+            chargePowerKw,
+            baseLossWatts,
+            currentDependentFactor,
+            totalLossWatts);
         return true;
+    }
+
+    private void SaveDefaults()
+    {
+        if (!TryParseInputs(out var input, out var validationMessage))
+        {
+            StatusMessage = $"Cannot save defaults: {validationMessage}";
+            return;
+        }
+
+        var settings = new AppInitializationSettings
+        {
+            CurrentSocPercent = input.CurrentSocPercent,
+            TargetSocPercent = input.TargetSocPercent,
+            BatteryCapacityKWh = input.BatteryCapacityKWh,
+            TotalPowerKW = input.TotalPowerKW,
+            ChargePowerKW = input.ChargePowerKW,
+            BaseLossWatts = input.BaseLossWatts,
+            CurrentDependentFactor = input.CurrentDependentFactor
+        };
+
+        _initializationStore.Save(settings);
+        StatusMessage = $"Defaults saved to {_initializationStore.FilePath}";
+    }
+
+    private void NotifyPowerPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(EffectiveChargePowerText));
+        OnPropertyChanged(nameof(TotalLossWattsText));
     }
 
     private static bool TryParseDecimal(string text, out decimal value)

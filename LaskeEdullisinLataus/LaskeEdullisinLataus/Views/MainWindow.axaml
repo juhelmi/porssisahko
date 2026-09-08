@@ -8,10 +8,10 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
     Title="Laske Edullisin Lataus"
-    Width="980"
-    Height="700"
-    MinWidth="880"
-    MinHeight="620">
+    Width="1040"
+    Height="780"
+    MinWidth="940"
+    MinHeight="700">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -19,16 +19,16 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*" Margin="20" RowSpacing="14">
+    <Grid RowDefinitions="Auto,*" Margin="16" RowSpacing="12">
         <TextBlock Grid.Row="0"
                    Text="Cheapest EV Charging Time (Porssisahko v2)"
-                   FontSize="22"
+                   FontSize="20"
                    FontWeight="SemiBold" />
 
         <Grid Grid.Row="1" ColumnDefinitions="360,*" ColumnSpacing="18">
             <Border Padding="14" CornerRadius="8" Background="#F4F4F4">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Inputs" FontSize="18" FontWeight="SemiBold" />
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Inputs" FontSize="17" FontWeight="SemiBold" />
 
                     <TextBlock Text="Current SOC (%)" />
                     <TextBox Text="{Binding CurrentSocText}" />
@@ -39,11 +39,20 @@
                     <TextBlock Text="Estimated Battery Capacity (kWh)" />
                     <TextBox Text="{Binding BatteryCapacityKwhText}" />
 
-                    <TextBlock Text="Charging Loss (W)" />
-                    <TextBox Text="{Binding ChargingLossWattsText}" />
+                        <TextBlock Text="Total Power (kW)" />
+                        <TextBox Text="{Binding TotalPowerKwText}" />
 
-                    <TextBlock Text="Charge Power (kW)" />
-                    <TextBox Text="{Binding ChargePowerKwText}" />
+                        <TextBlock Text="Base Loss (W)" />
+                        <TextBox Text="{Binding BaseLossWattsText}" />
+
+                        <TextBlock Text="Current Dependant Factor" />
+                        <TextBox Text="{Binding CurrentDependentFactorText}" />
+
+                        <TextBlock Text="Computed Charge Power" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding EffectiveChargePowerText}" />
+
+                        <TextBlock Text="Computed Total Loss" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding TotalLossWattsText}" />
 
                     <TextBlock Text="Default 3 x 8 A x 230 V = 5.52 kW" FontStyle="Italic" />
 
@@ -51,6 +60,11 @@
                             Command="{Binding CalculateCommand}"
                             HorizontalAlignment="Stretch"
                             Margin="0,6,0,0" />
+
+                        <Button Content="Save Current Values As Default"
+                            Command="{Binding SaveDefaultsCommand}"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,2,0,0" />
 
                     <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" />
                 </StackPanel>
