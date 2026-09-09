@@ -55,11 +55,18 @@ public sealed class ChargingOptimizer
             var totalGridEnergyKWh = 0m;
             var segments = new List<ChargeSegment>();
             var feasible = true;
+            DateTimeOffset? previousSlotEnd = null;
 
             for (var i = startIndex; i < priceSlots.Count && remainingHours > 0m; i++)
             {
                 var slot = priceSlots[i];
                 var slotHours = (decimal)(slot.EndDate - slot.StartDate).TotalHours;
+
+                if (previousSlotEnd is not null && slot.StartDate > previousSlotEnd.Value.AddSeconds(1))
+                {
+                    feasible = false;
+                    break;
+                }
 
                 if (slotHours <= 0m)
                 {
@@ -81,6 +88,7 @@ public sealed class ChargingOptimizer
                 totalGridEnergyKWh += gridEnergyThisSlot;
                 totalCostEur += slotCostEur;
                 remainingHours -= chargeHoursThisSlot;
+                previousSlotEnd = slot.EndDate;
             }
 
             if (remainingHours > 0m)

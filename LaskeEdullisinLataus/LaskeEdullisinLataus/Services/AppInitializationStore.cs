@@ -70,6 +70,8 @@ public sealed class AppInitializationSettings
     public decimal CurrentSocPercent { get; init; }
     public decimal TargetSocPercent { get; init; }
     public decimal BatteryCapacityKWh { get; init; }
+    public string ChargeStartTimeText { get; init; } = "21:00";
+    public string ChargeEndTimeText { get; init; } = "07:00";
     public decimal TotalPowerKW { get; init; }
     public decimal ChargePowerKW { get; init; }
     public decimal BaseLossWatts { get; init; }
@@ -82,6 +84,8 @@ public sealed class AppInitializationSettings
             CurrentSocPercent = 40m,
             TargetSocPercent = 80m,
             BatteryCapacityKWh = 77m,
+            ChargeStartTimeText = "21:00",
+            ChargeEndTimeText = "07:00",
             TotalPowerKW = 5.52m,
             ChargePowerKW = 5.52m - 0.3m - (5.52m * 0.055m),
             BaseLossWatts = 300m,

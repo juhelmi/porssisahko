@@ -27,6 +27,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private string batteryCapacityKwhText = "77";
 
     [ObservableProperty]
+    private string chargeStartTimeText = "21:00";
+
+    [ObservableProperty]
+    private string chargeEndTimeText = "07:00";
+
+    [ObservableProperty]
     private string totalPowerKwText = "5.52";
 
     [ObservableProperty]
@@ -59,6 +65,8 @@ public partial class MainWindowViewModel : ViewModelBase
         CurrentSocText = settings.CurrentSocPercent.ToString(CultureInfo.InvariantCulture);
         TargetSocText = settings.TargetSocPercent.ToString(CultureInfo.InvariantCulture);
         BatteryCapacityKwhText = settings.BatteryCapacityKWh.ToString(CultureInfo.InvariantCulture);
+        ChargeStartTimeText = settings.ChargeStartTimeText;
+        ChargeEndTimeText = settings.ChargeEndTimeText;
         TotalPowerKwText = settings.TotalPowerKW.ToString(CultureInfo.InvariantCulture);
         BaseLossWattsText = settings.BaseLossWatts.ToString(CultureInfo.InvariantCulture);
         CurrentDependentFactorText = settings.CurrentDependentFactor.ToString(CultureInfo.InvariantCulture);
@@ -75,6 +83,8 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnCurrentSocTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
     partial void OnTargetSocTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
     partial void OnBatteryCapacityKwhTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
+    partial void OnChargeStartTimeTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
+    partial void OnChargeEndTimeTextChanged(string value) => CalculateCommand.NotifyCanExecuteChanged();
     partial void OnTotalPowerKwTextChanged(string value)
     {
         CalculateCommand.NotifyCanExecuteChanged();
@@ -148,13 +158,17 @@ public partial class MainWindowViewModel : ViewModelBase
                 .OrderBy(x => x.StartDate)
                 .ToList();
 
-            if (futureSlots.Count == 0)
+            var rangedSlots = futureSlots
+                .Where(x => IsWithinRange(x.StartDate.ToLocalTime().TimeOfDay, input.ChargeWindowStart, input.ChargeWindowEnd))
+                .ToList();
+
+            if (rangedSlots.Count == 0)
             {
-                StatusMessage = "No future price data available from API.";
+                StatusMessage = "No price slots found inside the selected charging time range.";
                 return;
             }
 
-            var result = _optimizer.FindCheapestContinuousWindow(input, futureSlots);
+            var result = _optimizer.FindCheapestContinuousWindow(input, rangedSlots);
 
             if (!result.Success)
             {
@@ -179,13 +193,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 $"Cheapest start: {result.StartLocal:dd.MM.yyyy HH:mm}\n" +
                 $"End: {result.EndLocal:dd.MM.yyyy HH:mm}\n" +
                 $"Charge duration: {result.RequiredDurationHours:F2} h\n" +
+                $"Allowed time: {input.ChargeWindowStart:hh\\:mm} - {input.ChargeWindowEnd:hh\\:mm}\n" +
                 $"Total power: {input.TotalPowerKW:F2} kW\n" +
                 $"Effective charge power: {input.ChargePowerKW:F2} kW\n" +
                 $"Battery energy needed: {result.BatteryEnergyNeededKWh:F2} kWh\n" +
                 $"Grid energy used: {result.GridEnergyUsedKWh:F2} kWh\n" +
                 $"Total cost: {result.TotalCostEur:F2} EUR";
 
-            StatusMessage = $"Calculation completed using {futureSlots.Count} future price slots.";
+            StatusMessage = $"Calculation completed using {rangedSlots.Count} ranged future price slots.";
         }
         catch (Exception ex)
         {
@@ -221,6 +236,18 @@ public partial class MainWindowViewModel : ViewModelBase
             return false;
         }
 
+        if (!TryParseTimeOfDay(ChargeStartTimeText, out var chargeWindowStart))
+        {
+            error = "Charge start time must be in HH:mm format (for example 21:00).";
+            return false;
+        }
+
+        if (!TryParseTimeOfDay(ChargeEndTimeText, out var chargeWindowEnd))
+        {
+            error = "Charge end time must be in HH:mm format (for example 07:00).";
+            return false;
+        }
+
         if (!TryParseDecimal(TotalPowerKwText, out var totalPowerKw) || totalPowerKw <= 0m)
         {
             error = "Total power (kW) must be a positive number.";
@@ -253,6 +280,8 @@ public partial class MainWindowViewModel : ViewModelBase
             currentSoc,
             targetSoc,
             batteryCapacityKwh,
+            chargeWindowStart,
+            chargeWindowEnd,
             totalPowerKw,
             chargePowerKw,
             baseLossWatts,
@@ -274,6 +303,8 @@ public partial class MainWindowViewModel : ViewModelBase
             CurrentSocPercent = input.CurrentSocPercent,
             TargetSocPercent = input.TargetSocPercent,
             BatteryCapacityKWh = input.BatteryCapacityKWh,
+            ChargeStartTimeText = input.ChargeWindowStart.ToString("hh\\:mm", CultureInfo.InvariantCulture),
+            ChargeEndTimeText = input.ChargeWindowEnd.ToString("hh\\:mm", CultureInfo.InvariantCulture),
             TotalPowerKW = input.TotalPowerKW,
             ChargePowerKW = input.ChargePowerKW,
             BaseLossWatts = input.BaseLossWatts,
@@ -294,5 +325,29 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         return decimal.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value) ||
                decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static bool TryParseTimeOfDay(string text, out TimeSpan value)
+    {
+        var formats = new[] { "hh\\:mm", "h\\:mm", "HH\\:mm", "H\\:mm" };
+
+        return TimeSpan.TryParseExact(text, formats, CultureInfo.InvariantCulture, out value) ||
+               TimeSpan.TryParseExact(text, formats, CultureInfo.CurrentCulture, out value) ||
+               TimeSpan.TryParse(text, CultureInfo.CurrentCulture, out value);
+    }
+
+    private static bool IsWithinRange(TimeSpan timeOfDay, TimeSpan rangeStart, TimeSpan rangeEnd)
+    {
+        if (rangeStart == rangeEnd)
+        {
+            return true;
+        }
+
+        if (rangeEnd > rangeStart)
+        {
+            return timeOfDay >= rangeStart && timeOfDay < rangeEnd;
+        }
+
+        return timeOfDay >= rangeStart || timeOfDay < rangeEnd;
     }
 }

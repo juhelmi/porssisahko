@@ -7,6 +7,8 @@ public readonly record struct ChargingInput(
     decimal CurrentSocPercent,
     decimal TargetSocPercent,
     decimal BatteryCapacityKWh,
+    TimeSpan ChargeWindowStart,
+    TimeSpan ChargeWindowEnd,
     decimal TotalPowerKW,
     decimal ChargePowerKW,
     decimal BaseLossWatts,

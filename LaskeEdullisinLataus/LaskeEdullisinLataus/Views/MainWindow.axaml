@@ -30,11 +30,19 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Inputs" FontSize="17" FontWeight="SemiBold" />
 
-                    <TextBlock Text="Current SOC (%)" />
-                    <TextBox Text="{Binding CurrentSocText}" />
+                    <Grid ColumnDefinitions="Auto,70,Auto,70" ColumnSpacing="8">
+                        <TextBlock Grid.Column="0" Text="Current SOC (%)" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding CurrentSocText}" HorizontalAlignment="Stretch" />
+                        <TextBlock Grid.Column="2" Text="Target SOC (%)" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="3" Text="{Binding TargetSocText}" HorizontalAlignment="Stretch" />
+                    </Grid>
 
-                    <TextBlock Text="Target SOC (%)" />
-                    <TextBox Text="{Binding TargetSocText}" />
+                    <Grid ColumnDefinitions="Auto,74,Auto,74" ColumnSpacing="8">
+                        <TextBlock Grid.Column="0" Text="Charging Time" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding ChargeStartTimeText}" PlaceholderText="21:00" />
+                        <TextBlock Grid.Column="2" Text="to" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <TextBox Grid.Column="3" Text="{Binding ChargeEndTimeText}" PlaceholderText="07:00" />
+                    </Grid>
 
                     <TextBlock Text="Estimated Battery Capacity (kWh)" />
                     <TextBox Text="{Binding BatteryCapacityKwhText}" />
