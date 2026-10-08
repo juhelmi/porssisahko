@@ -19,6 +19,18 @@ Avalonia desktop app for finding the cheapest continuous EV charging window from
   - Effective charge power (kW)
   - Computed total loss (W)
 - Displays selected charging segments and total estimated cost.
+- Can load prices from a local JSON file instead of calling the live API. Leave the optional price file field blank to use live prices.
+
+The JSON file uses the API response shape, for example:
+
+```json
+{
+  "status": "success",
+  "prices": [
+    { "price": 3.25, "startDate": "2026-10-09T00:00:00Z", "endDate": "2026-10-09T01:00:00Z" }
+  ]
+}
+```
 
 ## Charging Model
 
@@ -67,3 +79,15 @@ Target framework:
 UI framework:
 
 - Avalonia
+
+## Robot Framework UI Tests
+
+The desktop UI tests run on Windows and use RPA Framework's Windows automation library. From this project directory:
+
+```powershell
+py -m pip install -r robot-tests/requirements.txt
+dotnet build
+robot --variable PROJECT_FILE:${PWD}\LaskeEdullisinLataus.csproj robot-tests
+```
+
+The suite generates future-dated sample prices for each run and loads them through the optional price JSON file field, so the calculation test does not depend on network access or fixed dates.

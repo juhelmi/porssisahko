@@ -32,29 +32,29 @@
 
                     <Grid ColumnDefinitions="Auto,70,Auto,70" ColumnSpacing="8">
                         <TextBlock Grid.Column="0" Text="Current SOC (%)" VerticalAlignment="Center" />
-                        <TextBox Grid.Column="1" Text="{Binding CurrentSocText}" HorizontalAlignment="Stretch" />
+                        <TextBox Grid.Column="1" AutomationProperties.AutomationId="CurrentSocTextBox" Text="{Binding CurrentSocText}" HorizontalAlignment="Stretch" />
                         <TextBlock Grid.Column="2" Text="Target SOC (%)" VerticalAlignment="Center" />
-                        <TextBox Grid.Column="3" Text="{Binding TargetSocText}" HorizontalAlignment="Stretch" />
+                        <TextBox Grid.Column="3" AutomationProperties.AutomationId="TargetSocTextBox" Text="{Binding TargetSocText}" HorizontalAlignment="Stretch" />
                     </Grid>
 
                     <Grid ColumnDefinitions="Auto,74,Auto,74" ColumnSpacing="8">
                         <TextBlock Grid.Column="0" Text="Charging Time" VerticalAlignment="Center" />
-                        <TextBox Grid.Column="1" Text="{Binding ChargeStartTimeText}" PlaceholderText="21:00" />
+                        <TextBox Grid.Column="1" AutomationProperties.AutomationId="ChargeStartTimeTextBox" Text="{Binding ChargeStartTimeText}" PlaceholderText="21:00" />
                         <TextBlock Grid.Column="2" Text="to" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        <TextBox Grid.Column="3" Text="{Binding ChargeEndTimeText}" PlaceholderText="07:00" />
+                        <TextBox Grid.Column="3" AutomationProperties.AutomationId="ChargeEndTimeTextBox" Text="{Binding ChargeEndTimeText}" PlaceholderText="07:00" />
                     </Grid>
 
                     <TextBlock Text="Estimated Battery Capacity (kWh)" />
-                    <TextBox Text="{Binding BatteryCapacityKwhText}" />
+                    <TextBox AutomationProperties.AutomationId="BatteryCapacityKwhTextBox" Text="{Binding BatteryCapacityKwhText}" />
 
                         <TextBlock Text="Total Power (kW)" />
-                        <TextBox Text="{Binding TotalPowerKwText}" />
+                        <TextBox AutomationProperties.AutomationId="TotalPowerKwTextBox" Text="{Binding TotalPowerKwText}" />
 
                         <TextBlock Text="Base Loss (W)" />
-                        <TextBox Text="{Binding BaseLossWattsText}" />
+                        <TextBox AutomationProperties.AutomationId="BaseLossWattsTextBox" Text="{Binding BaseLossWattsText}" />
 
                         <TextBlock Text="Current Dependant Factor" />
-                        <TextBox Text="{Binding CurrentDependentFactorText}" />
+                        <TextBox AutomationProperties.AutomationId="CurrentDependentFactorTextBox" Text="{Binding CurrentDependentFactorText}" />
 
                         <TextBlock Text="Computed Charge Power" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding EffectiveChargePowerText}" />
@@ -62,9 +62,15 @@
                         <TextBlock Text="Computed Total Loss" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding TotalLossWattsText}" />
 
-                    <TextBlock Text="Default 3 x 8 A x 230 V = 5.52 kW" FontStyle="Italic" />
+                        <TextBlock Text="Default 3 x 8 A x 230 V = 5.52 kW" FontStyle="Italic" />
+
+                        <TextBlock Text="Price JSON file (optional)" />
+                        <TextBox AutomationProperties.AutomationId="PriceFilePath"
+                                 Text="{Binding PriceFilePathText}"
+                                 PlaceholderText="Blank uses live prices" />
 
                     <Button Content="Fetch Prices And Calculate"
+                            AutomationProperties.AutomationId="CalculateButton"
                             Command="{Binding CalculateCommand}"
                             HorizontalAlignment="Stretch"
                             Margin="0,6,0,0" />
@@ -74,13 +80,17 @@
                             HorizontalAlignment="Stretch"
                             Margin="0,2,0,0" />
 
-                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                    <TextBlock AutomationProperties.AutomationId="StatusMessage"
+                               Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
 
             <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="10">
                 <Border Grid.Row="0" Padding="14" CornerRadius="8" Background="#EEF4FF">
-                    <TextBlock Text="{Binding ResultSummary}" TextWrapping="Wrap" FontSize="14" />
+                    <TextBlock AutomationProperties.AutomationId="ResultSummary"
+                               Text="{Binding ResultSummary}"
+                               TextWrapping="Wrap" FontSize="14" />
                 </Border>
 
                 <Border Grid.Row="1" Padding="10" CornerRadius="8" Background="#FAFAFA">

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -30,6 +31,21 @@ public sealed class PorssisahkoClient
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var payload = await JsonSerializer.DeserializeAsync<LatestPricesResponse>(stream, JsonOptions, cancellationToken);
 
+        return ToPriceSlots(payload);
+    }
+
+    public async Task<IReadOnlyList<PriceSlot>> GetPricesFromFileAsync(
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(filePath);
+        var payload = await JsonSerializer.DeserializeAsync<LatestPricesResponse>(stream, JsonOptions, cancellationToken);
+
+        return ToPriceSlots(payload);
+    }
+
+    private static IReadOnlyList<PriceSlot> ToPriceSlots(LatestPricesResponse? payload)
+    {
         if (payload?.Prices is null || payload.Prices.Count == 0)
         {
             return [];

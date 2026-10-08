@@ -42,6 +42,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string currentDependentFactorText = "0.055";
 
     [ObservableProperty]
+    private string priceFilePathText = string.Empty;
+
+    [ObservableProperty]
     private string statusMessage = "Ready.";
 
     [ObservableProperty]
@@ -150,9 +153,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            StatusMessage = "Fetching latest electricity prices...";
+            StatusMessage = string.IsNullOrWhiteSpace(PriceFilePathText)
+                ? "Fetching latest electricity prices..."
+                : $"Loading electricity prices from {PriceFilePathText}...";
 
-            var priceSlots = await _priceClient.GetLatestPricesAsync(CancellationToken.None);
+            var priceSlots = string.IsNullOrWhiteSpace(PriceFilePathText)
+                ? await _priceClient.GetLatestPricesAsync(CancellationToken.None)
+                : await _priceClient.GetPricesFromFileAsync(PriceFilePathText.Trim(), CancellationToken.None);
             var futureSlots = priceSlots
                 .Where(x => x.EndDate > DateTimeOffset.UtcNow)
                 .OrderBy(x => x.StartDate)
@@ -200,7 +207,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 $"Grid energy used: {result.GridEnergyUsedKWh:F2} kWh\n" +
                 $"Total cost: {result.TotalCostEur:F2} EUR";
 
-            StatusMessage = $"Calculation completed using {rangedSlots.Count} ranged future price slots.";
+            var priceSource = string.IsNullOrWhiteSpace(PriceFilePathText) ? "the live API" : "the local JSON file";
+            StatusMessage = $"Calculation completed using {rangedSlots.Count} ranged future price slots from {priceSource}.";
         }
         catch (Exception ex)
         {
