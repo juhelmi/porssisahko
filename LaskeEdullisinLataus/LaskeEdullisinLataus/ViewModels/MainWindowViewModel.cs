@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LaskeEdullisinLataus;
 using LaskeEdullisinLataus.Services;
 
 namespace LaskeEdullisinLataus.ViewModels;
@@ -209,6 +210,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var priceSource = string.IsNullOrWhiteSpace(PriceFilePathText) ? "the live API" : "the local JSON file";
             StatusMessage = $"Calculation completed using {rangedSlots.Count} ranged future price slots from {priceSource}.";
+            if (string.IsNullOrWhiteSpace(PriceFilePathText))
+            {
+                StatusMessage += $" Latest prices saved to {AppConstants.PriceExportDirectoryPath}.";
+            }
         }
         catch (Exception ex)
         {

@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using LaskeEdullisinLataus;
 using LaskeEdullisinLataus.Models;
 
 namespace LaskeEdullisinLataus.Services;
@@ -28,10 +31,12 @@ public sealed class PorssisahkoClient
         using var response = await HttpClient.GetAsync(LatestPricesUri, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        var payload = await JsonSerializer.DeserializeAsync<LatestPricesResponse>(stream, JsonOptions, cancellationToken);
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        var payload = JsonSerializer.Deserialize<LatestPricesResponse>(responseJson, JsonOptions);
+        var priceSlots = ToPriceSlots(payload);
 
-        return ToPriceSlots(payload);
+        await SaveLatestPricesAsync(responseJson, priceSlots, cancellationToken);
+        return priceSlots;
     }
 
     public async Task<IReadOnlyList<PriceSlot>> GetPricesFromFileAsync(
@@ -56,5 +61,40 @@ public sealed class PorssisahkoClient
             .Select(x => new PriceSlot(x.StartDate, x.EndDate, x.Price))
             .OrderBy(x => x.StartDate)
             .ToList();
+    }
+
+    private static async Task SaveLatestPricesAsync(
+        string responseJson,
+        IReadOnlyList<PriceSlot> priceSlots,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(AppConstants.PriceExportDirectoryPath);
+
+        var jsonPath = Path.Combine(
+            AppConstants.PriceExportDirectoryPath,
+            $"{AppConstants.LatestPricesFileBaseName}.json");
+        var csvPath = Path.Combine(
+            AppConstants.PriceExportDirectoryPath,
+            $"{AppConstants.LatestPricesFileBaseName}.csv");
+
+        await File.WriteAllTextAsync(jsonPath, responseJson, cancellationToken);
+        await File.WriteAllTextAsync(csvPath, ToCsv(priceSlots), new UTF8Encoding(true), cancellationToken);
+    }
+
+    private static string ToCsv(IReadOnlyList<PriceSlot> priceSlots)
+    {
+        var csv = new StringBuilder("startDate;endDate;priceCentsPerKWh\r\n");
+
+        foreach (var priceSlot in priceSlots)
+        {
+            csv.Append(priceSlot.StartDate.ToString("O", CultureInfo.InvariantCulture))
+                .Append(';')
+                .Append(priceSlot.EndDate.ToString("O", CultureInfo.InvariantCulture))
+                .Append(';')
+                .Append(priceSlot.PriceCentsPerKWh.ToString(CultureInfo.InvariantCulture))
+                .Append("\r\n");
+        }
+
+        return csv.ToString();
     }
 }
